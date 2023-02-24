@@ -50,7 +50,7 @@ def papply(
         When given, each task will include this many items.
         Otherwise, the input is divided into even batches, one per worker.
 
-    kwargs :
+    **kwargs :
         Sent to the object's apply method.
 
     Returns
