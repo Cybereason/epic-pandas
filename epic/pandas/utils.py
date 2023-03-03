@@ -50,6 +50,7 @@ class _PandasLoaderDumper:
             'pklgz': (partial(pd.read_pickle, compression="gzip"), partial(pd.to_pickle, compression="gzip")),
             'pklbz2': (partial(pd.read_pickle, compression="bz2"), partial(pd.to_pickle, compression="bz2")),
             'idx': (cls._load_index, cls._dump_index),
+            'npz': (sp.load_npz, cls._dump_spmat),
         }
 
     @classmethod
@@ -63,6 +64,7 @@ class _PandasLoaderDumper:
         - pklgz: pickle + gzip compression
         - pklbz2: pickle + bz2 compression
         - idx: for loading pandas.Index objects
+        - npz: for loading scipy sparse matrices
 
         Parameters
         ----------
@@ -109,6 +111,7 @@ class _PandasLoaderDumper:
         - pklgz: pickle + gzip compression
         - pklbz2: pickle + bz2 compression
         - idx: for dumping pandas.Index objects
+        - npz: for dumping scipy sparse matrices
 
         Parameters
         ----------
@@ -150,6 +153,12 @@ class _PandasLoaderDumper:
             raise TypeError(f"Unsupported type for dumping as index file: {type(obj).__name__}")
         with open(filepath, "w") as f:
             f.write("\n".join(map(str, obj)))
+
+    @staticmethod
+    def _dump_spmat(spmat, filepath, compressed=True):
+        if not sp.isspmatrix(spmat):
+            raise TypeError(f"Unsupported type for dumping to npz file: {type(spmat).__name__}")
+        sp.save_npz(filepath, spmat, compressed=compressed)
 
 
 pdload = _PandasLoaderDumper.load
