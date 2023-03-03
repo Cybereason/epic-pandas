@@ -12,6 +12,7 @@ from pandas.core.sorting import get_compressed_ids
 from pandas._typing import NDFrameT, AnyArrayLike, RandomState
 from pandas.core.common import random_state as process_random_state
 
+from io import BytesIO
 from functools import partial
 from scipy import sparse as sp
 from decorator import decorator
@@ -50,7 +51,9 @@ class _PandasLoaderDumper:
             'pklgz': (partial(pd.read_pickle, compression="gzip"), partial(pd.to_pickle, compression="gzip")),
             'pklbz2': (partial(pd.read_pickle, compression="bz2"), partial(pd.to_pickle, compression="bz2")),
             'idx': (cls._load_index, cls._dump_index),
-            'npz': (sp.load_npz, cls._dump_spmat),
+            'npy': (np.load, lambda x, f, **kw: np.save(f, x, **kw)),
+            'npz': (np.load, cls._dump_npz),
+            'npzsp': (sp.load_npz, cls._dump_spmat),
         }
 
     @classmethod
@@ -64,7 +67,9 @@ class _PandasLoaderDumper:
         - pklgz: pickle + gzip compression
         - pklbz2: pickle + bz2 compression
         - idx: for loading pandas.Index objects
-        - npz: for loading scipy sparse matrices
+        - npy: for loading numpy arrays
+        - npz: for loading an archive of numpy arrays (mapping returned)
+        - npzsp: for loading scipy sparse matrices
 
         Parameters
         ----------
@@ -111,7 +116,12 @@ class _PandasLoaderDumper:
         - pklgz: pickle + gzip compression
         - pklbz2: pickle + bz2 compression
         - idx: for dumping pandas.Index objects
-        - npz: for dumping scipy sparse matrices
+        - npy: for dumping numpy arrays
+        - npz: for dumping several numpy arrays together.
+               Can provide either an iterable of objects or a mapping of names to objects.
+               Can also provide a `compressed` flag (default True).
+        - npzsp: for dumping scipy sparse matrices.
+                 Can provide a `compressed` flag (default True).
 
         Parameters
         ----------
@@ -155,10 +165,30 @@ class _PandasLoaderDumper:
             f.write("\n".join(map(str, obj)))
 
     @staticmethod
+    def _dump_npz(obj, filepath, compressed=True):
+        save = np.savez_compressed if compressed else np.savez
+        if isinstance(obj, Mapping):
+            save(filepath, **obj)
+        elif isinstance(obj, Iterable) and not isinstance(obj, np.ndarray):
+            save(filepath, *obj)
+        else:
+            raise TypeError(
+                "Cannot dump a single object to 'npz' file. "
+                "Provide either an iterable of objects or a mapping of names to objects. "
+                "To dump a single numpy array, use 'npy' format. "
+                f"Got {type(obj).__name__}."
+            )
+
+    @staticmethod
     def _dump_spmat(spmat, filepath, compressed=True):
         if not sp.isspmatrix(spmat):
-            raise TypeError(f"Unsupported type for dumping to npz file: {type(spmat).__name__}")
-        sp.save_npz(filepath, spmat, compressed=compressed)
+            raise TypeError(f"Unsupported type for dumping to 'npzsp' file: {type(spmat).__name__}")
+        # sp.save_npz uses np.savez or np.savez_compressed, which both enforce a .npz suffix
+        # for a string filename. So we write the file to disk for ourselves.
+        with BytesIO() as buffer:
+            sp.save_npz(buffer, spmat, compressed=compressed)
+            with open(filepath, 'wb') as f:
+                f.write(buffer.getbuffer())
 
 
 pdload = _PandasLoaderDumper.load
