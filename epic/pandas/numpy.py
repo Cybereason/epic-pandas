@@ -6,11 +6,11 @@ from pandas import isna
 from collections.abc import Iterator
 from pandas.core.dtypes.inference import is_scalar
 from numpy.typing import ArrayLike, DTypeLike, NDArray
-from typing import TypeVar, TypeGuard, Literal, overload
+from typing import TypeVar, TypeGuard, Literal, overload, TypeAlias
 
 T = TypeVar('T')
 S = TypeVar('S')
-ExtendedArrayLike = str | bytes | bytearray | ArrayLike | PathLike | io.IOBase
+ExtendedArrayLike: TypeAlias = str | bytes | bytearray | ArrayLike | PathLike | io.IOBase
 
 
 def isnan(array: ArrayLike) -> NDArray | bool:
@@ -152,16 +152,16 @@ def dropna(array: ArrayLike, axis: int | None = None, how: Literal['any', 'all']
         If `axis` is not valid (either positive or negative) for the number of dimensions of `array`.
     """
     array = np.asarray(array)
-    isna = isnan(array)
+    is_na = isnan(array)
     if axis is None:
-        return array[~isna]
+        return array[~is_na]
     if not -array.ndim <= axis < array.ndim:
         raise ValueError(f"invalid axis {axis} for a {array.ndim}-dimensional array")
     if axis < 0:
         axis += array.ndim
     assert how in ('any', 'all')
     return array.take(
-        np.nonzero(~getattr(isna, how)(axis=tuple(x for x in range(array.ndim) if x != axis)))[0],
+        np.nonzero(~getattr(is_na, how)(axis=tuple(x for x in range(array.ndim) if x != axis)))[0],
         axis=axis,
     )
 
@@ -183,13 +183,15 @@ def unique_destroy(array: ArrayLike) -> NDArray:
 
 
 @overload
-def split_with_overlap(array: ArrayLike, length: int, overlap: int = 0,
-                       partials: Literal[True] = True) -> np.ma.MaskedArray: ...
+def split_with_overlap(array: ArrayLike, length: int, overlap: int = ...,
+                       partials: Literal[True] = ...) -> np.ma.MaskedArray: ...
 @overload
 def split_with_overlap(array: ArrayLike, length: int, overlap: int, partials: Literal[False]) -> NDArray: ...
 @overload
 def split_with_overlap(array: ArrayLike, length: int, overlap: int,
                        partials: bool) -> NDArray | np.ma.MaskedArray: ...
+
+
 def split_with_overlap(array, length, overlap=0, partials=True):
     """
     Split an array to segments of a certain length, allowing overlaps between segments.

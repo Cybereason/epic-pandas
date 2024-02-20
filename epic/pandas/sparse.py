@@ -4,19 +4,19 @@ import pandas as pd
 
 from operator import mul
 from scipy import sparse as sp
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, TypeAlias
 from collections.abc import Iterable, Hashable
 from epic.common.general import to_list, coalesce
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 
 from .utils import stack_indices
 
-Shape2D = tuple[int, int]
-IndexLike = Iterable[Hashable]
+Shape2D: TypeAlias = tuple[int, int]
+IndexLike: TypeAlias = Iterable[Hashable]
 SDF = TypeVar('SDF', bound='SparseDataFrame')
-CSRArgType = ArrayLike | sp.spmatrix | Shape2D | \
-             tuple[ArrayLike, tuple[ArrayLike, ArrayLike]] | \
-             tuple[ArrayLike, ArrayLike, ArrayLike]
+CSRArgType: TypeAlias = ArrayLike | sp.spmatrix | Shape2D | \
+                        tuple[ArrayLike, tuple[ArrayLike, ArrayLike]] | \
+                        tuple[ArrayLike, ArrayLike, ArrayLike]
 
 
 class SparseDataFrame(sp.csr_matrix):

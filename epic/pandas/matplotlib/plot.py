@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from typing import Literal, cast
+from typing import Literal, cast, TypeAlias
 from numpy.typing import ArrayLike, NDArray
 from epic.common.general import coalesce, is_iterable, to_list
 from collections.abc import Callable, Mapping, Hashable, Collection, Iterable
@@ -15,8 +15,8 @@ from matplotlib.colors import Colormap, LogNorm, ListedColormap, BoundaryNorm
 from ..utils import canonize_df_and_cols
 from .colors import sequential_cmap, ColorSpec
 
-Rotation = float | Literal['vertical', 'horizontal'] | None
-Ticks = Literal['full', 'auto'] | int | float | Iterable[int] | None
+Rotation: TypeAlias = float | Literal['vertical', 'horizontal'] | None
+Ticks: TypeAlias = Literal['full', 'auto'] | int | float | Iterable[int] | None
 
 
 def logxplot(series: pd.Series, **kwargs) -> Axes:
@@ -282,6 +282,7 @@ def plot_2d_hist(
         ax: Axes | None = None,
         cmap: str | Colormap | None = 'viridis',
         corr_title: bool = True,
+        **kwargs,
 ) -> Axes:
     """
     Plot a 2D histogram of some data using hexagons.
@@ -317,6 +318,9 @@ def plot_2d_hist(
     corr_title : bool, default True
         If True, adds a title to the plot showing the correlation coefficient of the two data series.
 
+    **kwargs :
+        Sent to plotting function.
+
     Returns
     -------
     Axes
@@ -324,7 +328,7 @@ def plot_2d_hist(
     df, x, y = canonize_df_and_cols(arg, *args)
     if ax is None:
         ax = plt.subplots(figsize=figsize)[1]
-    df.plot.hexbin(x, y, ax=ax, bins=bins, cmap=cmap)
+    df.plot.hexbin(x, y, ax=ax, bins=bins, cmap=cmap, **kwargs)
     if corr_title:
         ax.set_title(fr'$\rho = {df[[x, y]].corr().loc[x, y]:.3g}$')
     return ax
@@ -406,7 +410,7 @@ def group_hist(
     all_bins = np.histogram_bin_edges(df[data_col], bins=bins)
     for by_value, group in df.groupby(by_col)[data_col]:
         ax = group.hist(
-            bins=all_bins, histtype=histtype, alpha=alpha, density=density, label=by_value, ax=ax, **kwargs,
+            bins=all_bins, histtype=histtype, alpha=alpha, density=density, label=str(by_value), ax=ax, **kwargs,
         )
     if total:
         ax = df[data_col].hist(

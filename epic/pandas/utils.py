@@ -279,7 +279,7 @@ def sample_with_distribution(
 
 
 def value_counts(items: Iterable, sort: bool = True, ascending: bool = False, bins: int | None = None,
-                 dropna: bool = True) -> pd.DataFrame:
+                 dropna: bool = True, total: bool = False) -> pd.DataFrame:
     """
     Compute a histogram of the items and return both the counts and fractional parts of the whole.
 
@@ -300,6 +300,9 @@ def value_counts(items: Iterable, sort: bool = True, ascending: bool = False, bi
     dropna : bool, default True
         Whether to disregard N/A values.
 
+    total : bool, default False
+        Whether to add a total row to the result.
+
     Returns
     -------
     DataFrame
@@ -307,8 +310,14 @@ def value_counts(items: Iterable, sort: bool = True, ascending: bool = False, bi
         The sum of the 'fraction' column is 1.0.
     """
     vc = pd.value_counts(items, normalize=False, sort=sort, ascending=ascending, bins=bins, dropna=dropna)
-    frac = vc / vc.sum()
-    return pd.DataFrame({'count': vc, 'fraction': frac})
+    n_items = vc.sum()
+    res = pd.DataFrame({'count': vc, 'fraction': vc / n_items})
+    if total:
+        tot_label = 'TOTAL'
+        while tot_label in res.index:
+            tot_label = f"={tot_label}="
+        res.loc[tot_label] = [n_items, 1]
+    return res
 
 
 @assert_types(df=pd.DataFrame)
@@ -485,6 +494,7 @@ def alignable(obj1: NDFrame, obj2: NDFrame) -> bool:
     """
     Test whether two pandas objects can be exactly aligned together, i.e. whether
     their indices are without duplicates and if sorted, will be equal.
+    Equal indices are also considered alignable, even if they contain duplicates.
 
     Parameters
     ----------
@@ -495,10 +505,12 @@ def alignable(obj1: NDFrame, obj2: NDFrame) -> bool:
     -------
     bool
     """
-    return len(obj1) == len(obj2) \
-        and obj1.index.is_unique \
-        and obj2.index.is_unique \
-        and obj1.index.symmetric_difference(obj2.index).empty
+    return obj1.index.equals(obj2.index) or (
+            len(obj1) == len(obj2)
+            and obj1.index.is_unique
+            and obj2.index.is_unique
+            and obj1.index.symmetric_difference(obj2.index).empty
+    )
 
 
 def autoload(*arg_names: str) -> Callable[[Callable[..., T]], Callable[..., T]]:
@@ -715,6 +727,8 @@ class IdentitySeries(Mapping):
 def canonize_df_and_cols(arg: pd.DataFrame, /, *items: Hashable) -> tuple: ...
 @overload
 def canonize_df_and_cols(arg: ArrayLike | AnyArrayLike, /, *items: ArrayLike | AnyArrayLike) -> tuple: ...
+
+
 def canonize_df_and_cols(arg, /, *items):
     """
     Canonize parameters for functions which accept either a DataFrame and some of its column names,
@@ -833,6 +847,8 @@ def iterrows(df: pd.DataFrame, index: Literal[True]) -> SizedIterable[tuple[Hash
 def iterrows(df: pd.DataFrame, index: Literal[False] = False) -> SizedIterable[pd.Series]: ...
 @overload
 def iterrows(df: pd.DataFrame, index: bool) -> SizedIterable[tuple[Hashable, pd.Series]] | SizedIterable[pd.Series]: ...
+
+
 def iterrows(df, index=False):
     """
     A convenience wrapper for iterating over the rows of a DataFrame.

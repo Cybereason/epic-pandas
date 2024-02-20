@@ -1,11 +1,13 @@
 import numpy as np
 
+from typing import TypeAlias
 from matplotlib.colors import to_rgb
 from colorsys import rgb_to_hls, hls_to_rgb
 
-RgbTuple = HlsTuple = tuple[float, float, float]
-RgbaTuple = tuple[float, float, float, float]
-ColorSpec = RgbTuple | RgbaTuple | str
+RgbTuple: TypeAlias = tuple[float, float, float]
+HlsTuple: TypeAlias = tuple[float, float, float]
+RgbaTuple: TypeAlias = tuple[float, float, float, float]
+ColorSpec: TypeAlias = RgbTuple | RgbaTuple | str
 
 
 def to_hls(color: ColorSpec) -> HlsTuple:

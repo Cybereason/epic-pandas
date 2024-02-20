@@ -70,11 +70,12 @@ def papply(
     else:
         actual_axis = 0
     n_items = obj.shape[actual_axis]
+    indexer = obj.iloc(axis=actual_axis)
     with Workforce(backend=backend, n_workers=n_workers) as workforce:
         n_jobs = max(workforce.n_workers, 1) if batch_size is None else None
         results = list(workforce.map(
             func=partial(lambda chunk, **kw: chunk.apply(func, **kw), **kwargs),
-            inputs=(obj.iloc[(slice(None), s) if actual_axis else s] for s in gen_slices(n_items, n_jobs, batch_size)),
+            inputs=(indexer[s] for s in gen_slices(n_items, n_jobs, batch_size)),
             ordered=True,
             errors='raise',
         ))
