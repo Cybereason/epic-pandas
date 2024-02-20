@@ -87,7 +87,11 @@ def draw_graph(
         pos = nx.drawing.nx_agraph.graphviz_layout(graph)
     elif set(pos.keys()) != set(graph.nodes):
         raise ValueError("Invalid `pos` argument: keys must match graph nodes.")
-    nodes = pd.DataFrame.from_dict(dict(graph.nodes(data=True)), orient='index')
+    nodes = pd.DataFrame.from_dict(dict(graph.nodes(data=True)), orient='index').reindex(index=graph.nodes)
+    if nodes.empty:
+        # we do this to avoid pandas optimizations causing issues below
+        nodes["_dummy"] = None
+        node_attrs = False
     if color_group is None:
         color_group = pd.Series(0, index=nodes.index)
     elif isinstance(color_group, Mapping):
